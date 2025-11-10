@@ -256,40 +256,63 @@ $("btnQuote").onclick = async () => {
   }catch(e){ setLog("❌ Quote error: " + (e.message||e)); }
 };
 
-$("btnSend").onclick = async () => {
-  try{
-    await waitForEthers();
-    const me = await ensureSigner();
-    const token = $("token").value.trim();
-    const adapter = $("adapter").value.trim();
-    const toAddr = $("toAddr").value.trim() || me;
-    const amountLD = $("amountLD").value.trim();
-    const pct = Number($("minPct").value.trim() || "99");
-    const dstEid = Number($("dstEid").value.trim());
-    if(!amountLD) throw new Error("Isi jumlah LD dulu.");
-
-    const erc = new ethers.Contract(token, ERC20_ABI, signer);
-    const allowance = await erc.allowance(me, adapter);
-    if (allowance.lt(toBN(amountLD))) {
-      log("⚠️ Allowance kurang ("+allowance.toString()+"). Klik Approve dulu.");
-      return;
-    }
-
-    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
-    const to32 = toBytes32Address(toAddr);
-    const minLD = minAmountLD(amountLD, pct);
-    const sendParam = { dstEid, to: to32, amountLD, minAmountLD: minLD, extraOptions:"0x", composeMsg:"0x", oftCmd:"0x" };
-
-    const fee = await oft.quoteSend(sendParam, false);
-    const feeParam = { nativeFee: fee.nativeFee, zroFee: 0 };
-
-    setLog("🚀 Mengirim... msg.value = " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
-    const tx = await oft.send(sendParam, feeParam, me, { value: fee.nativeFee });
-    log("TX: " + tx.hash);
-    await tx.wait();
-    setLog("✅ Send confirmed. TX: " + tx.hash);
-  }catch(e){ setLog("❌ Send error: " + (e.message||e)); }
+  } catch (e) {
+    setLog("❌ Send error: " + (e.message || e));
+  }
 };
+
+async function quoteFee() {
+  try {
+    const amountInput = document.querySelector('input[type="number"]');
+    const dstEidInput = document.querySelector('#dstEid');
+    const adapterInput = document.querySelector('#adapter');
+
+    const amount = amountInput?.value?.trim();
+    const dstEid = parseInt(dstEidInput?.value?.trim() || "0");
+    const adapter = adapterInput?.value?.trim();
+
+    if (!amount || isNaN(amount)) throw new Error("⚠️ Jumlah belum diisi atau tidak valid!");
+    if (!dstEid) throw new Error("⚠️ dstEid belum diisi!");
+    if (!adapter) throw new Error("⚠️ Kontrak adapter kosong!");
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const oft = new ethers.Contract(adapter, oftAbi, signer);
+
+    const [nativeFee] = await oft.quoteSend(dstEid, amount, false);
+    setLog(`💰 Estimasi Fee: ${ethers.utils.formatEther(nativeFee)} ETH`);
+  } catch (err) {
+    setLog(`❌ Quote error: ${err.message}`);
+  }
+}
+
+async function sendToken() {
+  try {
+    const amountInput = document.querySelector('input[type="number"]');
+    const dstEidInput = document.querySelector('#dstEid');
+    const toInput = document.querySelector('input[placeholder*="0x"]');
+    const adapterInput = document.querySelector('#adapter');
+
+    const amount = amountInput?.value?.trim();
+    const dstEid = parseInt(dstEidInput?.value?.trim() || "0");
+    const to = toInput?.value?.trim();
+    const adapter = adapterInput?.value?.trim();
+
+    if (!amount || isNaN(amount)) throw new Error("Jumlah token belum diisi!");
+    if (!ethers.utils.isAddress(to)) throw new Error("Alamat tujuan tidak valid!");
+    if (!dstEid) throw new Error("dstEid tidak valid!");
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const oft = new ethers.Contract(adapter, oftAbi, signer);
+
+    const [nativeFee] = await oft.quoteSend(dstEid, amount, false);
+    const tx = await oft.send(dstEid, to, amount, signer.getAddress(), "0x", { value: nativeFee });
+    setLog(`🚀 TX dikirim! Hash: ${tx.hash}`);
+  } catch (err) {
+    setLog(`❌ Send error: ${err.message}`);
+  }
+}
 </script>
 </body>
 </html>
