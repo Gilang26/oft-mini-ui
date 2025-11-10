@@ -1,170 +1,105 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🚀 LayerZero OFT • Mini UI</title>
-  <meta name="theme-color" content="#0b1220">
-
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-
-  <!-- Web3Modal + WalletConnect -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.8/dist/index.js"></script>
-
-  <style>
-    :root {
-      --bg-1:#0b1220;
-      --bg-2:#0e1628;
-      --text:#e6edf3;
-      --muted:#9aa6b2;
-      --accent:#7c5cff;
-      --ring:rgba(110,231,255,.35);
-      --success:#22c55e;
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Connect Test</title>
+<style>
+  body{font-family:system-ui,Arial;margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1220;color:#e6edf3}
+  .card{width:min(520px,92vw);background:#121a2a;border:1px solid #22304a;border-radius:14px;padding:18px}
+  button{width:100%;padding:12px;border:0;border-radius:10px;background:#6c8cff;color:#0b1220;font-weight:700}
+  pre{white-space:pre-wrap;background:#0f1625;border:1px solid #22304a;border-radius:10px;padding:10px;margin-top:12px}
+</style>
+<!-- ethers + fallback -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js" defer></script>
+<script>
+(function ensureEthers(){
+  setTimeout(function(){
+    if(typeof window.ethers==='undefined'){
+      var s=document.createElement('script');
+      s.src='https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js';
+      s.defer=true;document.head.appendChild(s);
     }
-    * {box-sizing:border-box}
-    html,body {
-      height:100%;
-      margin:0;
-      font-family:Inter,system-ui,Arial,sans-serif;
-      color:var(--text);
-      background:linear-gradient(180deg,var(--bg-1),var(--bg-2));
-      display:flex;justify-content:center;align-items:center;
-    }
-    .wrap {
-      width:95%;
-      max-width:800px;
-      background:rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      padding:24px;
-      box-shadow:0 0 20px rgba(0,0,0,.4);
-    }
-    h1 {text-align:center;color:#a78bfa;}
-    input {
-      width:100%;
-      padding:10px;
-      border-radius:6px;
-      border:1px solid rgba(255,255,255,.1);
-      background:rgba(0,0,0,.3);
-      color:var(--text);
-      margin-bottom:10px;
-    }
-    button {
-      border:none;
-      border-radius:6px;
-      padding:10px 16px;
-      color:#fff;
-      cursor:pointer;
-      transition:.2s;
-    }
-    #btnConnect {background:linear-gradient(90deg,#60a5fa,#7c3aed);}
-    #btnSend {background:linear-gradient(90deg,#3b82f6,#8b5cf6);}
-    #btnApprove {background:linear-gradient(90deg,#22c55e,#16a34a);}
-    #btnQuote {background:linear-gradient(90deg,#facc15,#eab308);}
-    #log {font-size:13px;margin-top:15px;opacity:.8;white-space:pre-line;}
-  </style>
+  },500);
+})();
+</script>
+<!-- web3modal + walletconnect (fallback) -->
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js" defer></script>
+<script src="https://unpkg.com/web3modal@1.9.8/dist/index.js" defer></script>
 </head>
 <body>
-  <div class="wrap">
-    <h1>LayerZero OFT — Mini UI</h1>
-    <p>Kirim token OFT antar-chain secara manual & universal wallet connect.</p>
-
-    <label>Alamat Tujuan (EVM)</label>
-    <input id="toAddr" placeholder="0x..." />
-
-    <label>Jumlah (LD)</label>
-    <input id="amountLD" placeholder="Contoh: 1000000 (≈ 1 USDT @6 desimal)" />
-
-    <label>Token (ERC20)</label>
-    <input id="token" value="0xc4DCC311c028e341fd8602D8eB89c5de9462592" />
-
-    <label>Adapter OFT</label>
-    <input id="adapter" value="0xc099cD946d5efCC35A99D64E808c1430cEf0812" />
-
-    <label>Min Receive (%)</label>
-    <input id="minPct" value="99" />
-
-    <label>dstEid</label>
-    <input id="dstEid" value="40374" />
-
-    <div style="margin-top:15px;display:flex;flex-wrap:wrap;gap:8px;">
-      <button id="btnConnect">🔌 Connect</button>
-      <button id="btnApprove">✅ Approve</button>
-      <button id="btnQuote">💰 Quote Fee</button>
-      <button id="btnSend">🚀 Send</button>
-    </div>
-
-    <div id="log">thdx • versi universal</div>
+  <div class="card">
+    <h2>🔌 Wallet Connect Test</h2>
+    <p>Buka halaman ini di <b>MetaMask/OKX/Trust Browser</b>, lalu tekan Connect.</p>
+    <button id="btnConnect">Connect</button>
+    <pre id="log">log siap…</pre>
   </div>
 
-  <script>
-    let provider, signer, web3Modal, wcProvider;
+<script>
+let provider, signer, web3Modal, wcProvider;
+const log = (m)=>{const el=document.getElementById('log'); el.textContent+=(el.textContent?'\\n':'')+m;};
 
-    function setLog(msg){ document.getElementById('log').textContent = msg; console.log(msg); }
-    function log(msg){ console.log(msg); }
+function initWeb3Modal(){
+  if (web3Modal) return;
+  const providerOptions = {
+    walletconnect: {
+      package: window.WalletConnectProvider?.default,
+      options: { rpc: { 1:"https://rpc.ankr.com/eth" } } // tidak dipakai utk Sepolia, cuma supaya init OK
+    }
+  };
+  web3Modal = new window.Web3Modal.default({ cacheProvider:false, providerOptions });
+}
 
-    async function waitForEthers(){
-      return new Promise((resolve)=>{
-        if (window.ethers) return resolve();
-        const iv=setInterval(()=>{ if(window.ethers){clearInterval(iv);resolve();}},200);
-      });
+async function waitForLibs(){
+  const start = Date.now();
+  while (!window.ethers || !window.Web3Modal || !window.WalletConnectProvider){
+    if (Date.now()-start>6000) throw new Error("Libs belum termuat (ethers/web3modal)");
+    await new Promise(r=>setTimeout(r,120));
+  }
+}
+
+async function connectUniversal(){
+  try{
+    await waitForLibs();
+    // 1) injected provider dulu (MetaMask/OKX/Trust/CBW)
+    let ext = null;
+    if (window.ethereum) ext = window.ethereum;
+    else if (window.okxwallet?.ethereum) ext = window.okxwallet.ethereum;
+    else if (window.coinbaseWalletExtension) ext = window.coinbaseWalletExtension;
+
+    if (ext){
+      provider = new ethers.providers.Web3Provider(ext,'any');
+      await provider.send('eth_requestAccounts',[]);
+      signer = provider.getSigner();
+      const me = await signer.getAddress();
+      const net = await provider.getNetwork();
+      log(`✅ Injected connected: ${me}`);
+      log(`chainId: ${net.chainId}`);
+      return;
     }
 
-    function initWeb3Modal(){
-      const providerOptions = {
-        walletconnect: {
-          package: window.WalletConnectProvider.default,
-          options: { rpc: {1: "https://rpc.ankr.com/eth"} }
-        }
-      };
-      web3Modal = new window.Web3Modal.default({ cacheProvider:false, providerOptions });
+    // 2) fallback: Web3Modal (WalletConnect)
+    initWeb3Modal();
+    const wc = await web3Modal.connect();
+    wcProvider = wc;
+    provider = new ethers.providers.Web3Provider(wc,'any');
+    signer = provider.getSigner();
+    const me = await signer.getAddress();
+    const net = await provider.getNetwork();
+    log(`✅ WalletConnect connected: ${me}`);
+    log(`chainId: ${net.chainId}`);
+
+    if (wc.on){
+      wc.on('disconnect',()=>log('🔌 disconnected'));
+      wc.on('accountsChanged',a=>log('accountsChanged: '+a));
+      wc.on('chainChanged',c=>log('chainChanged: '+c));
     }
+  }catch(e){
+    log('❌ Connect error: '+(e.message||e));
+  }
+}
 
-    // ✅ Universal Wallet Connect (MetaMask, OKX, Trust, Coinbase, WalletConnect)
-    async function connectUniversal(){
-      await waitForEthers();
-      try{
-        let ext = null;
-        if (window.ethereum) ext = window.ethereum;
-        else if (window.okxwallet && window.okxwallet.ethereum) ext = window.okxwallet.ethereum;
-        else if (window.coinbaseWalletExtension) ext = window.coinbaseWalletExtension;
-
-        if (ext){
-          provider = new ethers.providers.Web3Provider(ext,'any');
-          await provider.send('eth_requestAccounts',[]);
-          signer = provider.getSigner();
-          const me = await signer.getAddress();
-          setLog('✅ Connected: ' + me);
-          return;
-        }
-
-        // fallback ke WalletConnect
-        initWeb3Modal();
-        const wc = await web3Modal.connect();
-        wcProvider = wc;
-        provider = new ethers.providers.Web3Provider(wc,'any');
-        signer = provider.getSigner();
-        const me = await signer.getAddress();
-        setLog('✅ Connected (WalletConnect): ' + me);
-
-        if(wc.on){
-          wc.on('disconnect',()=>setLog('🔌 Disconnected'));
-          wc.on('accountsChanged',a=>log('ℹ️ accountsChanged: '+a));
-          wc.on('chainChanged',c=>log('ℹ️ chainChanged: '+c));
-        }
-      }catch(e){
-        setLog('❌ Connect error: ' + (e.message||e));
-      }
-    }
-
-    document.getElementById('btnConnect').onclick = connectUniversal;
-
-    // placeholder tombol lainnya
-    document.getElementById('btnApprove').onclick = ()=>setLog('✅ Approve dummy (akan dihubungkan ke kontrak nanti)');
-    document.getElementById('btnQuote').onclick = ()=>setLog('💰 Quote dummy (akan diisi LayerZero quoteSend)');
-    document.getElementById('btnSend').onclick = ()=>setLog('🚀 Send dummy (akan dihubungkan ke oft.send)');
-  </script>
+document.getElementById('btnConnect').onclick = connectUniversal;
+</script>
 </body>
 </html>
