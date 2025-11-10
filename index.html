@@ -2,51 +2,149 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OFT Mini UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🚀 LayerZero OFT • Mini UI</title>
+
+  <!-- Font modern -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <meta name="theme-color" content="#0b1220">
   <style>
-    body {
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
+    :root{
+      --bg-1:#0b1220;
+      --bg-2:#0e1628;
+      --card:#121b2f;
+      --text:#e6edf3;
+      --muted:#9aa6b2;
+      --accent:#6ee7ff;
+      --accent-2:#7c5cff;
+      --success:#22c55e;
+      --ring: rgba(110,231,255,.35);
     }
-    input, button {
-      padding: 10px;
-      margin: 8px;
-      border-radius: 5px;
-      border: none;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at -10% -10%, rgba(124,92,255,.18), transparent 60%),
+        radial-gradient(1000px 800px at 110% 10%, rgba(110,231,255,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      display:flex; align-items:center; justify-content:center;
+      padding:24px;
     }
-    input {
-      width: 250px;
+    .wrap{width:100%; max-width:760px}
+    .brand{
+      text-align:center; margin-bottom:18px;
     }
-    button {
-      background-color: #238636;
-      color: white;
-      cursor: pointer;
+    .brand .chip{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      font-size:12px; color:var(--muted); letter-spacing:.3px;
     }
-    button:hover {
-      background-color: #2ea043;
+    .title{
+      text-align:center; margin:18px 0 6px;
+      font-weight:800; font-size:clamp(22px,4.5vw,36px);
+      line-height:1.15;
+      background:linear-gradient(90deg,var(--accent),#fff,var(--accent-2));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
     }
+    .subtitle{
+      text-align:center; color:var(--muted); margin:0 0 18px; font-size:14px;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px; padding:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(6px);
+    }
+    .grid{display:grid; grid-template-columns:1fr; gap:14px}
+    @media (min-width:640px){ .grid{ grid-template-columns:1fr 1fr; } }
+
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+    .input{
+      width:100%; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(12,18,30,.6); color:var(--text);
+      outline:none; transition:.2s border, .2s box-shadow, .2s transform;
+    }
+    .input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 6px var(--ring);
+      transform: translateY(-1px);
+    }
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+    .btn{
+      flex:1; min-width:140px; padding:12px 14px; border-radius:12px; border:0;
+      font-weight:700; color:#0b1220; cursor:pointer;
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      box-shadow:0 10px 24px rgba(124,92,255,.25);
+      transition:transform .12s ease, filter .12s ease;
+    }
+    .btn:hover{ transform:translateY(-1px); filter:saturate(1.15) }
+    .btn.secondary{
+      background:transparent; color:var(--text);
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:none;
+    }
+    .footer{
+      margin-top:16px; text-align:center; color:var(--muted); font-size:12px;
+    }
+    .ok{color:var(--success)}
   </style>
 </head>
 <body>
-  <h1>🚀 LayerZero OFT Mini UI</h1>
-  <p>Kirim token OFT antar chain secara manual.</p>
+  <main class="wrap">
+    <div class="brand">
+      <span class="chip">🧪 Sepolia → Stable (EID 40374)</span>
+    </div>
+    <h1 class="title">LayerZero OFT — Mini UI</h1>
+    <p class="subtitle">Kirim token OFT antar-chain dengan tampilan yang lebih rapi dan nyaman di HP.</p>
 
-  <form>
-    <label>Alamat Tujuan:</label><br>
-    <input type="text" placeholder="0x..." /><br>
+    <section class="card">
+      <div class="grid">
+        <div>
+          <label>Alamat Tujuan</label>
+          <input class="input" id="addr" placeholder="0x…" autocomplete="off" />
+          <div class="hint">Masukkan alamat EVM. Sistem akan mengubah ke <code>bytes32</code> saat kirim.</div>
+        </div>
+        <div>
+          <label>Jumlah Token (unit LD)</label>
+          <input class="input" id="amount" type="number" placeholder="Contoh: 1000000 (≙ 1 USDT, 6 desimal)" />
+          <div class="hint">Untuk USDT 6 desimal: 1 USDT = <b>1,000,000</b> (LD).</div>
+        </div>
+      </div>
 
-    <label>Jumlah Token:</label><br>
-    <input type="number" placeholder="Misal: 1000000000" /><br>
+      <div class="actions">
+        <button class="btn secondary" id="btnCopy">Salin Link DApp</button>
+        <button class="btn" id="btnDummy">Kirim Token</button>
+      </div>
 
-    <button type="button">Kirim Token</button>
-  </form>
+      <p id="msg" class="footer">UI ini hanya tampilan. Aksi kirim akan kita sambungkan ke kontrak di langkah berikutnya. <span class="ok">👍</span></p>
+    </section>
 
-  <p style="margin-top:20px; font-size:12px; opacity:0.8;">
-    thdx
-  </p>
+    <p class="footer">thdx • versi tampilan</p>
+  </main>
+
+  <script>
+    // Sementara tombol hanya demo (untuk tampilan). Nanti kita ganti dengan ethers.js.
+    const msg = document.getElementById('msg');
+    document.getElementById('btnDummy').onclick = () => {
+      msg.innerHTML = '✨ Tombol berfungsi! Selanjutnya kita sambungkan ke kontrak LayerZero (approve → quote → send).';
+    };
+    document.getElementById('btnCopy').onclick = async () => {
+      try{
+        await navigator.clipboard.writeText(location.href);
+        msg.textContent = 'Link dApp disalin ke clipboard.';
+      }catch{ msg.textContent = 'Gagal menyalin link. Salin manual saja.'; }
+    };
+  </script>
 </body>
 </html>
