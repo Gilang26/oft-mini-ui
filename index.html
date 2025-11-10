@@ -5,7 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>OFT Bridge v2</title>
   <meta name="theme-color" content="#0b1220" />
+
+  <!-- Load ethers.js dengan fallback -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <script>
+    // fallback kalau window.ethers belum muncul
+    (function ensureEthers() {
+      if (typeof window.ethers === 'undefined') {
+        const s = document.createElement('script');
+        s.src = "https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js";
+        s.onload = () => console.log("✅ ethers fallback loaded");
+        document.head.appendChild(s);
+      } else {
+        console.log("✅ ethers loaded");
+      }
+    })();
+  </script>
+
   <style>
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center;
