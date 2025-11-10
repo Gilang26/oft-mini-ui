@@ -4,9 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🚀 LayerZero OFT • Mini UI</title>
+
+  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <meta name="theme-color" content="#0b1220">
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+
+  <!-- Ethers.js + fallback (antisipasi error "Can't find variable: ethers") -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js" defer></script>
+  <script>
+    (function ensureEthers(){
+      function injectFallback(){
+        var s=document.createElement('script');
+        s.src='https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js';
+        s.defer=true;
+        document.head.appendChild(s);
+      }
+      setTimeout(function(){
+        if(typeof window.ethers==='undefined'){ injectFallback(); }
+      }, 500);
+    })();
+  </script>
+
+  <!-- Web3Modal + WalletConnect (agar bisa connect banyak wallet) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.8/dist/index.js"></script>
+
   <style>
     :root{
       --bg-1:#0b1220; --bg-2:#0e1628; --text:#e6edf3; --muted:#9aa6b2;
@@ -49,7 +71,7 @@
 <main class="wrap">
   <div style="text-align:center"><span class="chip">🧪 Sepolia → Stable (EID 40374)</span></div>
   <h1 class="title">LayerZero OFT — Mini UI</h1>
-  <p class="subtitle">Approve → Quote Fee → Send. Dibuat agar nyaman dipakai di HP.</p>
+  <p class="subtitle">Approve → Quote Fee → Send. Nyaman dipakai di HP dan support banyak wallet.</p>
 
   <section class="card">
     <div class="grid" style="margin-bottom:8px">
@@ -100,12 +122,74 @@
     <div id="log" class="log">Log siap.</div>
   </section>
 
-  <p class="foot">Dibuat oleh kamu • v1 (connected)</p>
+  <p class="foot">Dibuat oleh kamu • v2 (universal wallets)</p>
 </main>
 
 <script>
-let provider, signer;
+/* ========= Helper UI ========= */
+const $ = id => document.getElementById(id);
+const setLog = t => { $("log").textContent = t; };
+const log = t => { $("log").textContent += "\\n" + t; $("log").scrollTop = $("log").scrollHeight; };
 
+/* ========= Wait for ethers ========= */
+async function waitForEthers(maxMs=6000){
+  const start = Date.now();
+  while (typeof window.ethers === 'undefined') {
+    if (Date.now()-start > maxMs) throw new Error('ethers gagal dimuat');
+    await new Promise(r=>setTimeout(r,150));
+  }
+}
+
+/* ========= Web3Modal (universal connect) ========= */
+let provider, signer, web3Modal, wcProvider;
+
+function initWeb3Modal() {
+  if (web3Modal) return;
+  const providerOptions = {
+    walletconnect: {
+      package: window.WalletConnectProvider.default,
+      options: {
+        // isi infuraId / rpc jika punya untuk koneksi lebih stabil
+        // infuraId: ""
+      }
+    }
+  };
+  web3Modal = new window.Web3Modal.default({
+    cacheProvider: false,
+    providerOptions
+  });
+}
+
+async function connectUniversal() {
+  await waitForEthers();
+  initWeb3Modal();
+  try {
+    // MetaMask in-app browser biasanya expose isMetaMask
+    if (window.ethereum && window.ethereum.isMetaMask) {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      const me = await signer.getAddress();
+      setLog("✅ Connected (MetaMask): " + me);
+      return;
+    }
+    // Jika tidak ada MetaMask → pakai Web3Modal (WalletConnect, dll)
+    const ext = await web3Modal.connect();
+    wcProvider = ext;
+    provider = new ethers.providers.Web3Provider(ext);
+    signer = provider.getSigner();
+    const me = await signer.getAddress();
+    setLog("✅ Connected (Web3Modal): " + me);
+
+    if (ext.on) {
+      ext.on("disconnect", () => { log("🔌 disconnected"); provider=null; signer=null; });
+      ext.on("accountsChanged", (a)=> log("ℹ️ accountsChanged: " + a));
+      ext.on("chainChanged", (c)=> log("ℹ️ chainChanged: " + c));
+    }
+  } catch(e){ setLog("❌ Connect error: " + (e.message||e)); }
+}
+
+/* ========= OFT Logic ========= */
 const ERC20_ABI = [
   "function approve(address spender, uint256 value) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
@@ -117,50 +201,32 @@ const OFT_ABI = [
   "function send((uint32,bytes32,uint256,uint256,bytes,bytes,bytes),(uint256,uint256),address) payable"
 ];
 
-const $ = (id)=>document.getElementById(id);
-const log = (txt)=>{ const el=$("log"); el.textContent += "\\n" + txt; el.scrollTop = el.scrollHeight; };
-const set = (txt)=>{ $("log").textContent = txt; };
-
 function toBytes32Address(addr){
   const a = ethers.utils.getAddress(addr).slice(2);
-  return "0x" + a.padStart(64,"0");
+  return "0x" + a.padStart(64, "0");
 }
 function toBN(x){ return ethers.BigNumber.from(String(x)); }
 function minAmountLD(amountLD, pct){ return toBN(amountLD).mul(pct).div(100); }
 
-async function ensure(){
-  if(!window.ethereum) throw new Error("MetaMask tidak terdeteksi");
-  if(!provider){
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-  }
-  const net = await provider.getNetwork();
-  if (String(net.chainId) !== "11155111") {
-    log("⚠️  Kamu di chainId " + net.chainId + ". Pindah ke Sepolia ya.");
-  }
+async function ensureSigner() {
+  if (!signer) throw new Error("Belum terhubung wallet. Klik Connect.");
   return await signer.getAddress();
 }
 
-$("btnConnect").onclick = async() => {
-  try{
-    const me = await ensure();
-    set("✅ Connected as " + me);
-  }catch(e){ set("❌ " + (e.message||e)); }
-};
+/* ========= Handlers ========= */
+$("btnConnect").onclick = connectUniversal;
 
-$("btnApprove").onclick = async() => {
+$("btnApprove").onclick = async () => {
   try{
-    const me = await ensure();
+    await waitForEthers();
+    const me = await ensureSigner();
     const token = $("token").value.trim();
     const adapter = $("adapter").value.trim();
     const amountLD = $("amountLD").value.trim();
     if(!amountLD) throw new Error("Isi jumlah LD dulu (contoh 1000000).");
 
     const erc = new ethers.Contract(token, ERC20_ABI, signer);
-    // (opsional) cek decimals:
     try { const d = await erc.decimals(); log("ℹ️ Token decimals = " + d); } catch {}
-
     log("Approve " + amountLD + " ke adapter...");
     const tx = await erc.approve(adapter, amountLD);
     log("Approve tx: " + tx.hash);
@@ -171,42 +237,37 @@ $("btnApprove").onclick = async() => {
 
 $("btnQuote").onclick = async () => {
   try{
-    const me = await ensure();
+    await waitForEthers();
+    const me = await ensureSigner();
     const adapter = $("adapter").value.trim();
     const toAddr = $("toAddr").value.trim() || me;
     const amountLD = $("amountLD").value.trim();
     const pct = Number($("minPct").value.trim() || "99");
     const dstEid = Number($("dstEid").value.trim());
-
     if(!amountLD) throw new Error("Isi jumlah LD dulu.");
+
+    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
     const to32 = toBytes32Address(toAddr);
     const minLD = minAmountLD(amountLD, pct);
     const sendParam = { dstEid, to: to32, amountLD, minAmountLD: minLD, extraOptions:"0x", composeMsg:"0x", oftCmd:"0x" };
-    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
 
     const fee = await oft.quoteSend(sendParam, false);
-    set("💰 nativeFee (wei): " + fee.nativeFee.toString() + "\\n≈ " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
-  }catch(e){ set("❌ Quote error: " + (e.message||e)); }
+    setLog("💰 nativeFee (wei): " + fee.nativeFee.toString() + "\\n≈ " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
+  }catch(e){ setLog("❌ Quote error: " + (e.message||e)); }
 };
 
 $("btnSend").onclick = async () => {
   try{
-    const me = await ensure();
+    await waitForEthers();
+    const me = await ensureSigner();
     const token = $("token").value.trim();
     const adapter = $("adapter").value.trim();
     const toAddr = $("toAddr").value.trim() || me;
     const amountLD = $("amountLD").value.trim();
     const pct = Number($("minPct").value.trim() || "99");
     const dstEid = Number($("dstEid").value.trim());
-
     if(!amountLD) throw new Error("Isi jumlah LD dulu.");
-    const to32 = toBytes32Address(toAddr);
-    const minLD = minAmountLD(amountLD, pct);
-    const sendParam = { dstEid, to: to32, amountLD, minAmountLD: minLD, extraOptions:"0x", composeMsg:"0x", oftCmd:"0x" };
 
-    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
-
-    // cek allowance
     const erc = new ethers.Contract(token, ERC20_ABI, signer);
     const allowance = await erc.allowance(me, adapter);
     if (allowance.lt(toBN(amountLD))) {
@@ -214,15 +275,20 @@ $("btnSend").onclick = async () => {
       return;
     }
 
+    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
+    const to32 = toBytes32Address(toAddr);
+    const minLD = minAmountLD(amountLD, pct);
+    const sendParam = { dstEid, to: to32, amountLD, minAmountLD: minLD, extraOptions:"0x", composeMsg:"0x", oftCmd:"0x" };
+
     const fee = await oft.quoteSend(sendParam, false);
     const feeParam = { nativeFee: fee.nativeFee, zroFee: 0 };
 
-    set("🚀 Mengirim... msg.value = " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
+    setLog("🚀 Mengirim... msg.value = " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
     const tx = await oft.send(sendParam, feeParam, me, { value: fee.nativeFee });
     log("TX: " + tx.hash);
     await tx.wait();
-    set("✅ Send confirmed. TX: " + tx.hash);
-  }catch(e){ set("❌ Send error: " + (e.message||e)); }
+    setLog("✅ Send confirmed. TX: " + tx.hash);
+  }catch(e){ setLog("❌ Send error: " + (e.message||e)); }
 };
 </script>
 </body>
