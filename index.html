@@ -2,317 +2,169 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🚀 LayerZero OFT • Mini UI</title>
-
-  <!-- Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <meta name="theme-color" content="#0b1220">
 
-  <!-- Ethers.js + fallback (antisipasi error "Can't find variable: ethers") -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js" defer></script>
-  <script>
-    (function ensureEthers(){
-      function injectFallback(){
-        var s=document.createElement('script');
-        s.src='https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js';
-        s.defer=true;
-        document.head.appendChild(s);
-      }
-      setTimeout(function(){
-        if(typeof window.ethers==='undefined'){ injectFallback(); }
-      }, 500);
-    })();
-  </script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
 
-  <!-- Web3Modal + WalletConnect (agar bisa connect banyak wallet) -->
+  <!-- Web3Modal + WalletConnect -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.8/dist/index.js"></script>
 
   <style>
-    :root{
-      --bg-1:#0b1220; --bg-2:#0e1628; --text:#e6edf3; --muted:#9aa6b2;
-      --accent:#6ee7ff; --accent-2:#7c5cff; --ring:rgba(110,231,255,.35); --success:#22c55e; --warn:#f59e0b; --err:#ef4444;
-      --card: rgba(255,255,255,.03); --stroke: rgba(255,255,255,.08);
+    :root {
+      --bg-1:#0b1220;
+      --bg-2:#0e1628;
+      --text:#e6edf3;
+      --muted:#9aa6b2;
+      --accent:#7c5cff;
+      --ring:rgba(110,231,255,.35);
+      --success:#22c55e;
     }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{
-      margin:0; font-family:Inter,system-ui,Arial,sans-serif; color:var(--text);
-      background:
-        radial-gradient(1200px 600px at -10% -10%, rgba(124,92,255,.18), transparent 60%),
-        radial-gradient(1000px 800px at 110% 10%, rgba(110,231,255,.12), transparent 60%),
-        linear-gradient(180deg, var(--bg-1), var(--bg-2));
-      display:flex; align-items:center; justify-content:center; padding:24px;
+    * {box-sizing:border-box}
+    html,body {
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,Arial,sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      display:flex;justify-content:center;align-items:center;
     }
-    .wrap{width:100%; max-width:820px}
-    .chip{display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:999px;
-      border:1px solid var(--stroke); background:var(--card); color:var(--muted); font-size:12px}
-    .title{margin:12px 0 8px; text-align:center; font-weight:800; font-size:clamp(22px,4.5vw,36px);
-      background:linear-gradient(90deg,var(--accent),#fff,var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent}
-    .subtitle{text-align:center; color:var(--muted); margin:0 0 18px; font-size:14px}
-    .card{background:linear-gradient(180deg, var(--card), rgba(255,255,255,.01)); border:1px solid var(--stroke); border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .grid{display:grid; grid-template-columns:1fr; gap:14px} @media (min-width:740px){.grid{grid-template-columns:1fr 1fr}}
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    .input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:rgba(12,18,30,.6); color:var(--text); outline:none; transition:.2s border,.2s box-shadow,.2s transform}
-    .input:focus{border-color:var(--accent); box-shadow:0 0 0 6px var(--ring); transform:translateY(-1px)}
-    .hint{font-size:12px; color:var(--muted); margin-top:6px}
-    .row{display:flex; gap:10px; flex-wrap:wrap}
-    .btn{flex:1; min-width:140px; padding:12px 14px; border-radius:12px; border:0; font-weight:700; color:#0b1220;
-      background:linear-gradient(90deg,var(--accent),var(--accent-2)); box-shadow:0 10px 24px rgba(124,92,255,.25);
-      transition:transform .12s ease, filter .12s ease; cursor:pointer}
-    .btn:hover{transform:translateY(-1px); filter:saturate(1.15)}
-    .btn.ghost{background:transparent; color:var(--text); border:1px solid var(--stroke); box-shadow:none}
-    .log{margin-top:14px; border:1px dashed var(--stroke); border-radius:12px; padding:12px; background:rgba(12,18,30,.4); font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; text-align:left; white-space:pre-wrap}
-    .ok{color:var(--success)} .warn{color:var(--warn)} .err{color:var(--err)}
-    .foot{margin-top:16px; text-align:center; color:var(--muted); font-size:12px}
+    .wrap {
+      width:95%;
+      max-width:800px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:24px;
+      box-shadow:0 0 20px rgba(0,0,0,.4);
+    }
+    h1 {text-align:center;color:#a78bfa;}
+    input {
+      width:100%;
+      padding:10px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(0,0,0,.3);
+      color:var(--text);
+      margin-bottom:10px;
+    }
+    button {
+      border:none;
+      border-radius:6px;
+      padding:10px 16px;
+      color:#fff;
+      cursor:pointer;
+      transition:.2s;
+    }
+    #btnConnect {background:linear-gradient(90deg,#60a5fa,#7c3aed);}
+    #btnSend {background:linear-gradient(90deg,#3b82f6,#8b5cf6);}
+    #btnApprove {background:linear-gradient(90deg,#22c55e,#16a34a);}
+    #btnQuote {background:linear-gradient(90deg,#facc15,#eab308);}
+    #log {font-size:13px;margin-top:15px;opacity:.8;white-space:pre-line;}
   </style>
 </head>
 <body>
-<main class="wrap">
-  <div style="text-align:center"><span class="chip">🧪 Sepolia → Stable (EID 40374)</span></div>
-  <h1 class="title">LayerZero OFT — Mini UI</h1>
-  <p class="subtitle">Approve → Quote Fee → Send. Nyaman dipakai di HP dan support banyak wallet.</p>
+  <div class="wrap">
+    <h1>LayerZero OFT — Mini UI</h1>
+    <p>Kirim token OFT antar-chain secara manual & universal wallet connect.</p>
 
-  <section class="card">
-    <div class="grid" style="margin-bottom:8px">
-      <div>
-        <label>Alamat Tujuan (EVM)</label>
-        <input class="input" id="toAddr" placeholder="0x…" autocomplete="off" />
-        <div class="hint">Akan diubah otomatis ke <code>bytes32</code> saat kirim.</div>
-      </div>
-      <div>
-        <label>Jumlah (LD)</label>
-        <input class="input" id="amountLD" type="number" placeholder="Contoh: 1000000 (≙ 1 USDT @6 desimal)" />
-        <div class="hint">USDT 6 desimal → 1 USDT = <b>1,000,000</b> (LD). Mulai kecil dulu ya.</div>
-      </div>
+    <label>Alamat Tujuan (EVM)</label>
+    <input id="toAddr" placeholder="0x..." />
+
+    <label>Jumlah (LD)</label>
+    <input id="amountLD" placeholder="Contoh: 1000000 (≈ 1 USDT @6 desimal)" />
+
+    <label>Token (ERC20)</label>
+    <input id="token" value="0xc4DCC311c028e341fd8602D8eB89c5de9462592" />
+
+    <label>Adapter OFT</label>
+    <input id="adapter" value="0xc099cD946d5efCC35A99D64E808c1430cEf0812" />
+
+    <label>Min Receive (%)</label>
+    <input id="minPct" value="99" />
+
+    <label>dstEid</label>
+    <input id="dstEid" value="40374" />
+
+    <div style="margin-top:15px;display:flex;flex-wrap:wrap;gap:8px;">
+      <button id="btnConnect">🔌 Connect</button>
+      <button id="btnApprove">✅ Approve</button>
+      <button id="btnQuote">💰 Quote Fee</button>
+      <button id="btnSend">🚀 Send</button>
     </div>
 
-    <div class="grid" style="margin-bottom:8px">
-      <div>
-        <label>Token (ERC20)</label>
-        <input class="input" id="token" value="0xc4DCC311c028e341fd8602D8eB89c5de94625927" />
-        <div class="hint">USDT0 Sepolia (6 desimal)</div>
-      </div>
-      <div>
-        <label>OFT Adapter</label>
-        <input class="input" id="adapter" value="0xc099cD946d5efCC35A99D64E808c1430cEf08126" />
-        <div class="hint">Kontrak OFTAdapter</div>
-      </div>
-    </div>
+    <div id="log">thdx • versi universal</div>
+  </div>
 
-    <div class="grid">
-      <div>
-        <label>Min Receive (%)</label>
-        <input class="input" id="minPct" value="99" />
-        <div class="hint">99 artinya minAmount = 99% dari amount</div>
-      </div>
-      <div>
-        <label>dstEid</label>
-        <input class="input" id="dstEid" value="40374" />
-      </div>
-    </div>
+  <script>
+    let provider, signer, web3Modal, wcProvider;
 
-    <div class="row" style="margin-top:14px">
-      <button class="btn" id="btnConnect">🔌 Connect</button>
-      <button class="btn ghost" id="btnApprove">✅ Approve</button>
-      <button class="btn ghost" id="btnQuote">💰 Quote Fee</button>
-      <button class="btn" id="btnSend">🚀 Send</button>
-    </div>
+    function setLog(msg){ document.getElementById('log').textContent = msg; console.log(msg); }
+    function log(msg){ console.log(msg); }
 
-    <div id="log" class="log">Log siap.</div>
-  </section>
+    async function waitForEthers(){
+      return new Promise((resolve)=>{
+        if (window.ethers) return resolve();
+        const iv=setInterval(()=>{ if(window.ethers){clearInterval(iv);resolve();}},200);
+      });
+    }
 
-  <p class="foot">Dibuat oleh kamu • v2 (universal wallets)</p>
-</main>
+    function initWeb3Modal(){
+      const providerOptions = {
+        walletconnect: {
+          package: window.WalletConnectProvider.default,
+          options: { rpc: {1: "https://rpc.ankr.com/eth"} }
+        }
+      };
+      web3Modal = new window.Web3Modal.default({ cacheProvider:false, providerOptions });
+    }
 
-<script>
-/* ========= Helper UI ========= */
-const $ = id => document.getElementById(id);
-const setLog = t => { $("log").textContent = t; };
-const log = t => { $("log").textContent += "\\n" + t; $("log").scrollTop = $("log").scrollHeight; };
+    // ✅ Universal Wallet Connect (MetaMask, OKX, Trust, Coinbase, WalletConnect)
+    async function connectUniversal(){
+      await waitForEthers();
+      try{
+        let ext = null;
+        if (window.ethereum) ext = window.ethereum;
+        else if (window.okxwallet && window.okxwallet.ethereum) ext = window.okxwallet.ethereum;
+        else if (window.coinbaseWalletExtension) ext = window.coinbaseWalletExtension;
 
-/* ========= Wait for ethers ========= */
-async function waitForEthers(maxMs=6000){
-  const start = Date.now();
-  while (typeof window.ethers === 'undefined') {
-    if (Date.now()-start > maxMs) throw new Error('ethers gagal dimuat');
-    await new Promise(r=>setTimeout(r,150));
-  }
-}
+        if (ext){
+          provider = new ethers.providers.Web3Provider(ext,'any');
+          await provider.send('eth_requestAccounts',[]);
+          signer = provider.getSigner();
+          const me = await signer.getAddress();
+          setLog('✅ Connected: ' + me);
+          return;
+        }
 
-/* ========= Web3Modal (universal connect) ========= */
-let provider, signer, web3Modal, wcProvider;
+        // fallback ke WalletConnect
+        initWeb3Modal();
+        const wc = await web3Modal.connect();
+        wcProvider = wc;
+        provider = new ethers.providers.Web3Provider(wc,'any');
+        signer = provider.getSigner();
+        const me = await signer.getAddress();
+        setLog('✅ Connected (WalletConnect): ' + me);
 
-function initWeb3Modal() {
-  if (web3Modal) return;
-  const providerOptions = {
-    walletconnect: {
-      package: window.WalletConnectProvider.default,
-      options: {
-        // isi infuraId / rpc jika punya untuk koneksi lebih stabil
-        // infuraId: ""
+        if(wc.on){
+          wc.on('disconnect',()=>setLog('🔌 Disconnected'));
+          wc.on('accountsChanged',a=>log('ℹ️ accountsChanged: '+a));
+          wc.on('chainChanged',c=>log('ℹ️ chainChanged: '+c));
+        }
+      }catch(e){
+        setLog('❌ Connect error: ' + (e.message||e));
       }
     }
-  };
-  web3Modal = new window.Web3Modal.default({
-    cacheProvider: false,
-    providerOptions
-  });
-}
 
-async function connectUniversal() {
-  await waitForEthers();
-  initWeb3Modal();
-  try {
-    // MetaMask in-app browser biasanya expose isMetaMask
-    if (window.ethereum && window.ethereum.isMetaMask) {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = provider.getSigner();
-      const me = await signer.getAddress();
-      setLog("✅ Connected (MetaMask): " + me);
-      return;
-    }
-    // Jika tidak ada MetaMask → pakai Web3Modal (WalletConnect, dll)
-    const ext = await web3Modal.connect();
-    wcProvider = ext;
-    provider = new ethers.providers.Web3Provider(ext);
-    signer = provider.getSigner();
-    const me = await signer.getAddress();
-    setLog("✅ Connected (Web3Modal): " + me);
+    document.getElementById('btnConnect').onclick = connectUniversal;
 
-    if (ext.on) {
-      ext.on("disconnect", () => { log("🔌 disconnected"); provider=null; signer=null; });
-      ext.on("accountsChanged", (a)=> log("ℹ️ accountsChanged: " + a));
-      ext.on("chainChanged", (c)=> log("ℹ️ chainChanged: " + c));
-    }
-  } catch(e){ setLog("❌ Connect error: " + (e.message||e)); }
-}
-
-/* ========= OFT Logic ========= */
-const ERC20_ABI = [
-  "function approve(address spender, uint256 value) returns (bool)",
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)"
-];
-const OFT_ABI = [
-  "function quoteSend((uint32,bytes32,uint256,uint256,bytes,bytes,bytes),bool) view returns (uint256 nativeFee,uint256 zroFee)",
-  "function send((uint32,bytes32,uint256,uint256,bytes,bytes,bytes),(uint256,uint256),address) payable"
-];
-
-function toBytes32Address(addr){
-  const a = ethers.utils.getAddress(addr).slice(2);
-  return "0x" + a.padStart(64, "0");
-}
-function toBN(x){ return ethers.BigNumber.from(String(x)); }
-function minAmountLD(amountLD, pct){ return toBN(amountLD).mul(pct).div(100); }
-
-async function ensureSigner() {
-  if (!signer) throw new Error("Belum terhubung wallet. Klik Connect.");
-  return await signer.getAddress();
-}
-
-/* ========= Handlers ========= */
-$("btnConnect").onclick = connectUniversal;
-
-$("btnApprove").onclick = async () => {
-  try{
-    await waitForEthers();
-    const me = await ensureSigner();
-    const token = $("token").value.trim();
-    const adapter = $("adapter").value.trim();
-    const amountLD = $("amountLD").value.trim();
-    if(!amountLD) throw new Error("Isi jumlah LD dulu (contoh 1000000).");
-
-    const erc = new ethers.Contract(token, ERC20_ABI, signer);
-    try { const d = await erc.decimals(); log("ℹ️ Token decimals = " + d); } catch {}
-    log("Approve " + amountLD + " ke adapter...");
-    const tx = await erc.approve(adapter, amountLD);
-    log("Approve tx: " + tx.hash);
-    await tx.wait();
-    log("✅ Approve confirmed.");
-  }catch(e){ log("❌ Approve error: " + (e.message||e)); }
-};
-
-$("btnQuote").onclick = async () => {
-  try{
-    await waitForEthers();
-    const me = await ensureSigner();
-    const adapter = $("adapter").value.trim();
-    const toAddr = $("toAddr").value.trim() || me;
-    const amountLD = $("amountLD").value.trim();
-    const pct = Number($("minPct").value.trim() || "99");
-    const dstEid = Number($("dstEid").value.trim());
-    if(!amountLD) throw new Error("Isi jumlah LD dulu.");
-
-    const oft = new ethers.Contract(adapter, OFT_ABI, signer);
-    const to32 = toBytes32Address(toAddr);
-    const minLD = minAmountLD(amountLD, pct);
-    const sendParam = { dstEid, to: to32, amountLD, minAmountLD: minLD, extraOptions:"0x", composeMsg:"0x", oftCmd:"0x" };
-
-    const fee = await oft.quoteSend(sendParam, false);
-    setLog("💰 nativeFee (wei): " + fee.nativeFee.toString() + "\\n≈ " + ethers.utils.formatEther(fee.nativeFee) + " ETH");
-  }catch(e){ setLog("❌ Quote error: " + (e.message||e)); }
-};
-
-  } catch (e) {
-    setLog("❌ Send error: " + (e.message || e));
-  }
-};
-
-async function quoteFee() {
-  try {
-    const amountInput = document.querySelector('input[type="number"]');
-    const dstEidInput = document.querySelector('#dstEid');
-    const adapterInput = document.querySelector('#adapter');
-
-    const amount = amountInput?.value?.trim();
-    const dstEid = parseInt(dstEidInput?.value?.trim() || "0");
-    const adapter = adapterInput?.value?.trim();
-
-    if (!amount || isNaN(amount)) throw new Error("⚠️ Jumlah belum diisi atau tidak valid!");
-    if (!dstEid) throw new Error("⚠️ dstEid belum diisi!");
-    if (!adapter) throw new Error("⚠️ Kontrak adapter kosong!");
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const oft = new ethers.Contract(adapter, oftAbi, signer);
-
-    const [nativeFee] = await oft.quoteSend(dstEid, amount, false);
-    setLog(`💰 Estimasi Fee: ${ethers.utils.formatEther(nativeFee)} ETH`);
-  } catch (err) {
-    setLog(`❌ Quote error: ${err.message}`);
-  }
-}
-
-async function sendToken() {
-  try {
-    const amountInput = document.querySelector('input[type="number"]');
-    const dstEidInput = document.querySelector('#dstEid');
-    const toInput = document.querySelector('input[placeholder*="0x"]');
-    const adapterInput = document.querySelector('#adapter');
-
-    const amount = amountInput?.value?.trim();
-    const dstEid = parseInt(dstEidInput?.value?.trim() || "0");
-    const to = toInput?.value?.trim();
-    const adapter = adapterInput?.value?.trim();
-
-    if (!amount || isNaN(amount)) throw new Error("Jumlah token belum diisi!");
-    if (!ethers.utils.isAddress(to)) throw new Error("Alamat tujuan tidak valid!");
-    if (!dstEid) throw new Error("dstEid tidak valid!");
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const oft = new ethers.Contract(adapter, oftAbi, signer);
-
-    const [nativeFee] = await oft.quoteSend(dstEid, amount, false);
-    const tx = await oft.send(dstEid, to, amount, signer.getAddress(), "0x", { value: nativeFee });
-    setLog(`🚀 TX dikirim! Hash: ${tx.hash}`);
-  } catch (err) {
-    setLog(`❌ Send error: ${err.message}`);
-  }
-}
-</script>
+    // placeholder tombol lainnya
+    document.getElementById('btnApprove').onclick = ()=>setLog('✅ Approve dummy (akan dihubungkan ke kontrak nanti)');
+    document.getElementById('btnQuote').onclick = ()=>setLog('💰 Quote dummy (akan diisi LayerZero quoteSend)');
+    document.getElementById('btnSend').onclick = ()=>setLog('🚀 Send dummy (akan dihubungkan ke oft.send)');
+  </script>
 </body>
 </html>
